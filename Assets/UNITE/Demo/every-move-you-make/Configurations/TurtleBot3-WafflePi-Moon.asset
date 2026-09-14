@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d5740283dd2344ed8c5066a7c91ae1b, type: 3}
+  m_Name: TurtleBot3-WafflePi-Moon
+  m_EditorClassIdentifier: Unite.Demo.EveryMoveYouMake::Unite.Demo.EveryMoveYouMake.EveryMoveVehicleConfiguration
+  wheelbase: 0.287
+  maxLinearVelocity: 0.26
+  maxLinearAcceleration: 2.5
+  maxAngularVelocity: 0.3
+  maxWheelVelocityDifference: 0.0861
+  terrainRoughness: 0.7
+  wheelSlipFactor: 0.15
+  motorResponseVariation: 0.05
+  wheelRadiusVariation: 0.02
+  encoderNoise: 0.03
+  vibrationIntensity: 0.08
+  vibrationFrequency: 3
+  predictionOriginForwardOffset: 1
+  surfaceOffset: 0.005
+  tiltResponsiveness: 8
+  heightSmoothTime: 0.01
+  deterministicSeed: 1
+  useTimeDeltaInFixedUpdate: 1

@@ -1,0 +1,22 @@
+{
+    "name": "Unite.Demo.EveryMoveYouMake.Editor",
+    "rootNamespace": "Unite.Demo.Editor",
+    "references": [
+        "Unite.Core",
+        "Unite.Kernel",
+        "Unite.Demo.EveryMoveYouMake",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

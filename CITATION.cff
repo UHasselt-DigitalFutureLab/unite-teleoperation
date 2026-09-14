@@ -1,0 +1,66 @@
+cff-version: 1.2.0
+message: "If you use UNITE in your research, please cite the accompanying paper and software release."
+title: "UNITE: A Modular Testbed for Reproducible Delayed Space Teleoperation"
+abstract: >-
+  UNITE is a source-available modular Unity testbed for human-in-the-loop mobile-robot
+  teleoperation under communication delay. It represents communication conditions,
+  operator input, feedback, vehicle behavior, assistance techniques, tasks,
+  environments, and data capture as independently configurable modules.
+type: software
+authors:
+  - family-names: Cardinaels
+    given-names: Dries
+    email: dries.cardinaels@uhasselt.be
+    orcid: "https://orcid.org/0009-0002-1255-0838"
+  - family-names: Pietrzak
+    given-names: Thomas
+    orcid: "https://orcid.org/0000-0002-2013-7253"
+  - family-names: Ramakers
+    given-names: Raf
+    orcid: "https://orcid.org/0000-0001-6466-0663"
+  - family-names: Luyten
+    given-names: Kris
+    orcid: "https://orcid.org/0000-0002-4194-1101"
+version: 0.1.0
+date-released: "2026-09-14"
+license: PolyForm-Noncommercial-1.0.0
+repository-code: "https://github.com/UHasselt-DigitalFutureLab/unite-teleoperation"
+keywords:
+  - space teleoperation
+  - communication delay
+  - human-in-the-loop teleoperation
+  - mobile robot simulation
+  - experimental testbed
+  - reproducible research
+preferred-citation:
+  type: conference-paper
+  title: "UNITE: A Modular Testbed for Reproducible Delayed Space Teleoperation"
+  authors:
+    - family-names: Cardinaels
+      given-names: Dries
+      orcid: "https://orcid.org/0009-0002-1255-0838"
+    - family-names: Pietrzak
+      given-names: Thomas
+      orcid: "https://orcid.org/0000-0002-2013-7253"
+    - family-names: Ramakers
+      given-names: Raf
+      orcid: "https://orcid.org/0000-0001-6466-0663"
+    - family-names: Luyten
+      given-names: Kris
+      orcid: "https://orcid.org/0000-0002-4194-1101"
+  collection-title: "SpaceCHI 2026: Advancing Human-Computer Interaction for Space Exploration"
+  year: 2026
+  conference:
+    name: "SpaceCHI 2026: Advancing Human-Computer Interaction for Space Exploration"
+    date-start: "2026-09-24"
+    date-end: "2026-09-25"
+    location: "NASA Ames Research Center (NASA Silicon Valley Event Center)"
+    city: "Mountain View"
+    region: "California"
+    country: "US"
+    website: "https://spacechi.media.mit.edu"
+  publisher:
+    name: "Springer Nature Switzerland"
+    city: "Cham"
+    country: "CH"
+  # Series, volume, pages, and DOI follow once the proceedings volume is published.

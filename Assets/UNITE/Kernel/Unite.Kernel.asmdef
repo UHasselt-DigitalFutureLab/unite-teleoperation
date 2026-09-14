@@ -1,0 +1,16 @@
+{
+    "name": "Unite.Kernel",
+    "rootNamespace": "Unite.Kernel",
+    "references": [
+        "Unite.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

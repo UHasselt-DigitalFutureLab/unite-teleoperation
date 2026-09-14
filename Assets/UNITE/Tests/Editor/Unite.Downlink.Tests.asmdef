@@ -1,0 +1,6 @@
+{
+    "name": "Unite.Downlink.Tests",
+    "references": ["Unite.Core", "Unite.Kernel", "Unite.Demo.EveryMoveYouMake"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}
