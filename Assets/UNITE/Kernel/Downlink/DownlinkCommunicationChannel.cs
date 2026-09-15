@@ -24,6 +24,7 @@ namespace Unite.Kernel
 
         internal bool TryInitialize(out string error)
         {
+            Clear();
             if (string.IsNullOrWhiteSpace(StreamId))
             {
                 error = "contains a channel without a stream identifier.";
@@ -48,6 +49,7 @@ namespace Unite.Kernel
                     ingressTimestampSeconds,
                     out delaySeconds))
             {
+                package.Dispose();
                 return;
             }
 
@@ -59,6 +61,7 @@ namespace Unite.Kernel
                     $"{owner.GetType().Name} channel '{StreamId}' produced " +
                     $"an invalid transmission delay of {delaySeconds} seconds.",
                     owner);
+                package.Dispose();
                 return;
             }
 
@@ -71,10 +74,18 @@ namespace Unite.Kernel
             double timestampSeconds,
             Action<Package> releasePackage)
         {
-            while (queue.TryReleaseDue(timestampSeconds, out Package package))
+            while (queue != null && queue.TryReleaseDue(timestampSeconds, out Package package))
             {
-                releasePackage?.Invoke(package);
+                if (releasePackage != null)
+                    releasePackage(package);
+                else
+                    package.Dispose();
             }
+        }
+
+        internal void Clear()
+        {
+            queue?.Clear();
         }
     }
 }

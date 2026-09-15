@@ -35,7 +35,15 @@ namespace Unite.Kernel
         {
             while (pendingPackages.Count > 0)
             {
-                ReconstructPackage(pendingPackages.Dequeue(), timestampSeconds);
+                Package package = pendingPackages.Dequeue();
+                try
+                {
+                    ReconstructPackage(package, timestampSeconds);
+                }
+                finally
+                {
+                    package.Dispose();
+                }
             }
         }
 
@@ -64,10 +72,17 @@ namespace Unite.Kernel
         /// <summary>
         /// Updates a local representation from one released feedback package.
         /// Publish only usable reconstructed results; unknown or incomplete
-        /// inputs need not produce output. Resource ownership is study-defined.
+        /// inputs need not produce output. The input is disposed after this hook;
+        /// retain a payload lease if a local buffer needs its resources longer.
         /// </summary>
         protected abstract void ReconstructPackage(
             Package package,
             double timestampSeconds);
+
+        protected virtual void OnDestroy()
+        {
+            while (pendingPackages.Count > 0)
+                pendingPackages.Dequeue().Dispose();
+        }
     }
 }

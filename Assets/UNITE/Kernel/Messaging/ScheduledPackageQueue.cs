@@ -82,6 +82,13 @@ namespace Unite.Kernel
             return true;
         }
 
+        public void Clear()
+        {
+            foreach (ScheduledPackage scheduled in queue)
+                scheduled.Package.Dispose();
+            queue.Clear();
+        }
+
         public void CopyPendingSnapshots(
             List<PendingPackageSnapshot> destination)
         {

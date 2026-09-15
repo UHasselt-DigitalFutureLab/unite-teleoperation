@@ -148,6 +148,80 @@ namespace Unite.Tests
             Assert.That(reconstruction.LatestViewFrame, Is.Null);
         }
 
+        [Test]
+        public void ReconstructionCleansUnknownAndUnprocessedPayloads()
+        {
+            reconstruction = host.AddComponent<EveryMoveStateReconstruction>();
+            var unknown = new PackageLifetimeTests.Resource();
+            reconstruction.ReceivePackage(new Package(unknown, 1, "unknown"));
+            Step(reconstruction, 1);
+            Assert.That(unknown.Releases, Is.EqualTo(1));
+
+            int releases = 0;
+            reconstruction.ReceivePackage(new Package(Frame(1, 1, _ => releases++), 1, EveryMoveStreams.View));
+            DestroyHook(reconstruction);
+            Assert.That(releases, Is.EqualTo(1));
+        }
+
+        [TestCase("")]
+        [TestCase("unconfigured")]
+        public void DownlinkReleasesUnroutablePayloads(string stream)
+        {
+            ConfigureAgent(false);
+            var resource = new PackageLifetimeTests.Resource();
+            LogAssert.Expect(LogType.Error, stream == ""
+                ? "DownlinkCommunicationKernel received a package without a StreamId."
+                : "DownlinkCommunicationKernel has no channel for feedback stream 'unconfigured'.");
+            downlink.ReceivePackage(new Package(resource, 0, stream));
+            Assert.That(resource.Releases, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DestroyingDownlinkReleasesItsPendingPayloads()
+        {
+            ConfigureAgent(false);
+            var resource = new PackageLifetimeTests.Resource();
+            downlink.ReceivePackage(new Package(resource, 0, EveryMoveStreams.Pose));
+            Assert.That(resource.Releases, Is.Zero);
+            DestroyHook(downlink);
+            Assert.That(resource.Releases, Is.EqualTo(1));
+        }
+
+        [TestCase(double.NaN)]
+        [TestCase(double.PositiveInfinity)]
+        [TestCase(-1d)]
+        public void DownlinkReleasesPayloadsWithInvalidDelay(double delay)
+        {
+            ConfigureAgent(false);
+            var channels = (List<DownlinkCommunicationChannel>)typeof(DownlinkCommunicationKernel)
+                .GetField("channels", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(downlink);
+            Set(channels[0], "condition", new TestDelay { Delay = delay });
+            var resource = new PackageLifetimeTests.Resource();
+            LogAssert.Expect(LogType.Error,
+                $"DownlinkCommunicationKernel channel '{EveryMoveStreams.Pose}' produced " +
+                $"an invalid transmission delay of {delay} seconds.");
+            downlink.ReceivePackage(new Package(resource, 0, EveryMoveStreams.Pose));
+            Assert.That(resource.Releases, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void LocalObservationLeaseSurvivesReconstructionReplacement()
+        {
+            reconstruction = host.AddComponent<EveryMoveStateReconstruction>();
+            int releases = 0;
+            var first = new Package(Frame(1, 1, _ => releases++), 1, EveryMoveStreams.View);
+            IDisposable local = first.RetainPayload();
+            reconstruction.ReceivePackage(first);
+            Step(reconstruction, 1);
+            reconstruction.ReceivePackage(new Package(Frame(2, 2, _ => releases++), 2, EveryMoveStreams.View));
+            Step(reconstruction, 2);
+            Assert.That(releases, Is.Zero);
+            local.Dispose();
+            Assert.That(releases, Is.EqualTo(1));
+            DestroyHook(reconstruction);
+            Assert.That(releases, Is.EqualTo(2));
+        }
+
         [TestCase(typeof(NoAssistance), 0)]
         [TestCase(typeof(IdealTrajectoryAssistance), 1)]
         [TestCase(typeof(WorstCaseEnvelopeAssistance), 1)]
@@ -224,6 +298,35 @@ namespace Unite.Tests
                 .Invoke(agent, null);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CaptureKeepsLatestLocalPayloadAliveAcrossDropsAndMissingSamples(bool publish)
+        {
+            var capture = host.AddComponent<RemoteObservationAndStateCapture>();
+            var source = host.AddComponent<TestResourceObservation>();
+            Set(source, "streamId", "resource");
+            Set(source, "publishToDownlink", publish);
+            Set(capture, "sources", new RemoteObservationSource[] { source });
+            capture.PackageProduced += p => p.Dispose(); // Transport discards its ownership.
+            host.SetActive(true);
+            Step(capture, 1);
+            PackageLifetimeTests.Resource pre = source.Latest;
+            typeof(RemoteObservationAndStateCapture).GetMethod("CaptureFinalObservation",
+                BindingFlags.Instance | BindingFlags.NonPublic).Invoke(capture, new object[] { 1d });
+            PackageLifetimeTests.Resource post = source.Latest;
+            Assert.That(pre.Releases, Is.EqualTo(1));
+            Assert.That(post.Releases, Is.Zero);
+            source.Skip = true;
+            Step(capture, 2);
+            Assert.That(post.Releases, Is.Zero);
+            source.Skip = false;
+            Step(capture, 3);
+            Assert.That(post.Releases, Is.EqualTo(1));
+            PackageLifetimeTests.Resource last = source.Latest;
+            DestroyHook(capture);
+            Assert.That(last.Releases, Is.EqualTo(1));
+        }
+
         private ViewFramePackage Frame(double time, long sequence, Action<RenderTexture> release)
         {
             var texture = new RenderTexture(2, 2, 0);
@@ -297,10 +400,23 @@ namespace Unite.Tests
         { observation = null; return false; }
     }
 
+    public sealed class TestResourceObservation : RemoteObservationSource<PackageLifetimeTests.Resource>
+    {
+        public bool Skip;
+        public PackageLifetimeTests.Resource Latest;
+        protected override bool TryCapture(double time, out PackageLifetimeTests.Resource observation)
+        {
+            if (Skip) { observation = null; return false; }
+            observation = Latest = new PackageLifetimeTests.Resource();
+            return true;
+        }
+    }
+
     [Serializable]
     public sealed class TestDelay : CommunicationCondition
     {
+        public double Delay = .5;
         public override bool TryGetTransmissionDelay(Package package, double time, out double delay)
-        { delay = .5; return true; }
+        { delay = Delay; return true; }
     }
 }

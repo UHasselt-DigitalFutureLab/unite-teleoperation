@@ -20,8 +20,8 @@ namespace Unite.Kernel
 
         private readonly Dictionary<string, Package> latestObservationsByStreamId =
             new Dictionary<string, Package>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Package> preControlObservationsByStreamId =
-            new Dictionary<string, Package>(StringComparer.Ordinal);
+        private readonly Dictionary<string, IDisposable> localPayloadLeases =
+            new Dictionary<string, IDisposable>(StringComparer.Ordinal);
 
         /// <summary>
         /// Raised when a locally available observation changes. Consumers such as
@@ -41,8 +41,7 @@ namespace Unite.Kernel
 
         protected override void OnInitialize()
         {
-            latestObservationsByStreamId.Clear();
-            preControlObservationsByStreamId.Clear();
+            ReleaseLocalObservations();
 
             if (sources == null || sources.Length == 0)
             {
@@ -109,24 +108,21 @@ namespace Unite.Kernel
                 if (source.TryCapturePackage(timestampSeconds, out Package package))
                 {
                     string streamId = NormalizeStreamId(package.StreamId);
-                    if (publishFeedback)
-                    {
-                        // Assistance has already completed this tick, so a
-                        // local-only pre-control frame is no longer needed.
-                        ReleasePreControlObservation(streamId);
-                    }
-                    else
-                    {
-                        ReplacePreControlObservation(streamId, package);
-                    }
-
+                    // Keep local observations valid independently of transport
+                    // loss, delivery, and reconstruction's buffer replacement.
+                    IDisposable lease = package.RetainPayload();
+                    if (localPayloadLeases.TryGetValue(streamId, out IDisposable previous))
+                        previous.Dispose();
+                    localPayloadLeases[streamId] = lease;
                     latestObservationsByStreamId[streamId] = package;
                     LocalObservationProduced?.Invoke(package);
 
-                    if (publishFeedback && source.PublishToDownlink)
+                    if (publishFeedback && source.PublishToDownlink && PackageProduced != null)
                     {
-                        PackageProduced?.Invoke(package);
+                        PackageProduced(package);
                     }
+                    else
+                        package.Dispose();
                 }
             }
         }
@@ -138,39 +134,17 @@ namespace Unite.Kernel
                 : streamId.Trim();
         }
 
-        private void ReplacePreControlObservation(string streamId, Package package)
+        private void ReleaseLocalObservations()
         {
-            ReleasePreControlObservation(streamId);
-            preControlObservationsByStreamId[streamId] = package;
-        }
-
-        private void ReleasePreControlObservation(string streamId)
-        {
-            if (!preControlObservationsByStreamId.TryGetValue(
-                    streamId,
-                    out Package previous))
-            {
-                return;
-            }
-
-            preControlObservationsByStreamId.Remove(streamId);
-            if (previous.Payload is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
+            foreach (IDisposable lease in localPayloadLeases.Values)
+                lease.Dispose();
+            localPayloadLeases.Clear();
+            latestObservationsByStreamId.Clear();
         }
 
         private void OnDestroy()
         {
-            foreach (Package package in preControlObservationsByStreamId.Values)
-            {
-                if (package.Payload is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-            }
-
-            preControlObservationsByStreamId.Clear();
+            ReleaseLocalObservations();
         }
     }
 }

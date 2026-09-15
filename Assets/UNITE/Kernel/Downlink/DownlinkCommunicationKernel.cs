@@ -42,6 +42,7 @@ namespace Unite.Kernel
                 Debug.LogError(
                     $"{GetType().Name} received a package without a StreamId.",
                     this);
+                package.Dispose();
                 return;
             }
 
@@ -53,6 +54,7 @@ namespace Unite.Kernel
                     $"{GetType().Name} has no channel for feedback stream " +
                     $"'{streamId}'.",
                     this);
+                package.Dispose();
                 return;
             }
 
@@ -120,7 +122,19 @@ namespace Unite.Kernel
 
         private void ReleasePackage(Package package)
         {
-            PackageProduced?.Invoke(package);
+            // The reconstruction receiver takes ownership; other subscribers
+            // borrow the payload or retain an explicit lease if needed longer.
+            if (PackageProduced != null)
+                PackageProduced(package);
+            else
+                package.Dispose();
+        }
+
+        private void OnDestroy()
+        {
+            if (channels == null) return;
+            foreach (DownlinkCommunicationChannel channel in channels)
+                channel?.Clear();
         }
     }
 }

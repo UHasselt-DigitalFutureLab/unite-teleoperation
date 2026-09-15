@@ -1,3 +1,4 @@
+using System;
 using Unite.Core;
 using Unite.Kernel;
 using UnityEngine;
@@ -11,7 +12,7 @@ namespace Unite.Demo.EveryMoveYouMake
     public sealed class EveryMoveStateReconstruction
         : OperatorSideStateReconstructionModule
     {
-        private ViewFramePackage ownedViewFrame;
+        private IDisposable ownedViewFrame;
 
         public ReconstructedPose LatestPose { get; private set; }
         public ReconstructedVideoFrame LatestViewFrame { get; private set; }
@@ -35,12 +36,11 @@ namespace Unite.Demo.EveryMoveYouMake
 
             if (!view.Frame)
             {
-                view.Release();
                 return;
             }
 
-            ViewFramePackage previous = ownedViewFrame;
-            ownedViewFrame = view;
+            IDisposable previous = ownedViewFrame;
+            ownedViewFrame = package.RetainPayload();
             LatestViewFrame = new ReconstructedVideoFrame(
                 view.Frame, view.SampledAt, view.Sequence,
                 view.WorldToCameraMatrix, view.ProjectionMatrix);
@@ -60,13 +60,13 @@ namespace Unite.Demo.EveryMoveYouMake
                     LatestViewState, package.SourceTimestampSeconds,
                     EveryMoveStreams.ReconstructedViewState);
 
-            if (previous != null && previous != view)
-                previous.Release();
+            previous?.Dispose();
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
-            ownedViewFrame?.Release();
+            base.OnDestroy();
+            ownedViewFrame?.Dispose();
             ownedViewFrame = null;
             CurrentViewFrame = null;
             LatestViewFrame = null;

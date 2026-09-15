@@ -32,6 +32,18 @@ and sequence, so prediction needs no image pixels or transport package. The
 reconstruction module retains ownership of the video texture and releases it
 when replaced; consumers read the current buffer each presentation step.
 
+Downlink payload lifetime is separate from delivery timing. `Package.Dispose()`
+releases transport ownership; `RetainPayload()` returns a lease for a local
+observation or reconstructed buffer that still needs the payload. The payload's
+`IDisposable` hook runs only after the original ownership and all leases end.
+Downlink rejects/drops and queue shutdown release ownership; reconstruction
+releases each input after processing and retains a lease for its displayed frame.
+Local observation leases survive dropped transmissions and expire on replacement
+or destruction. This also covers local-only streams and queued, unprocessed frames.
+Do not dispose a borrowed payload directly or replace `Package.Payload` after
+publication. The Kernel knows only ownership; the demo's payload hook recycles
+the texture. Other study pipelines must manage ownership explicitly as needed.
+
 Both reconstruction and assistance can supply presentation in the same tick.
 `NoAssistance` emits nothing; the base video does not depend on an assistance
 pass-through. A technique that replaces or hides base feedback must declare how
